@@ -15,8 +15,8 @@ columns:
   check: update_time
 
 oneCheckRows: 10000
-oneSaveRows: 5000
-oneInsertRows: 1000
+oneQueryRows: 50000
+oneInsertRows: 10000
 
 logging:
   file: logs/application.log

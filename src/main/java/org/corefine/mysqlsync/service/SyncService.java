@@ -38,8 +38,8 @@ public class SyncService {
 	private ColumnsConfig columnsConfig;
 	@Value("${oneCheckRows}")
 	private Integer oneCheckRows;
-	@Value("${oneSaveRows}")
-	private Integer oneSaveRows;
+	@Value("${oneQueryRows}")
+	private Integer oneQueryRows;
 	@Value("${oneInsertRows}")
 	private Integer oneInsertRows;
 
@@ -110,7 +110,7 @@ public class SyncService {
 			String sql = "select * from " + tableName;
 			if (maxId != null)
 				sql += " where " + columnsConfig.getId() + " > ?";
-			sql += " order by " + columnsConfig.getId() + " asc limit " + oneSaveRows;
+			sql += " order by " + columnsConfig.getId() + " asc limit " + oneQueryRows;
 			List<Map<String, Object>> dataList;
 			if (maxId == null)
 				dataList = query(syncConnection.src, sql);
