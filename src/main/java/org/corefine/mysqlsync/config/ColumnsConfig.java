@@ -4,7 +4,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 @Component
-@ConfigurationProperties("desc")
+@ConfigurationProperties("columns")
 public class ColumnsConfig {
 	private String id;
 	private String check;
