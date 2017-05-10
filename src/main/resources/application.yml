@@ -1,0 +1,18 @@
+
+src: 
+  host: 120.132.82.53
+  username: back_local
+  password: YeTBws8DWh4AfZij
+  port: 3306
+
+desc: 
+  host: 192.168.101.239
+  username: dev
+  password: YeTBws8DWh4AfZij
+  port: 3306
+
+columns:
+  id: id
+  check: update_time
+
+oneCheckRows: 10000
