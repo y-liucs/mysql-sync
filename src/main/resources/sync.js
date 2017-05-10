@@ -1,44 +1,48 @@
 [
 	{
-		"uic": [
+		"dbName": "uic",
+		"tables": [
 			{
 				"tableName": "uic_burying_point",
-				"updateable": false
+				"update": false
 			}
-		],
-		"trans": [
+		]
+	},
+	{
+		"dbName": "trans",
+		"tables": [
 			{
 				"tableName": "plat_ranking_history",
-				"updateable": false
+				"update": false
 			},
 			{
 				"tableName": "plat_wheel_user_play_record",
-				"updateable": false
+				"update": false
 			},
 			{
 				"tableName": "quoits_user_play_record",
-				"updateable": false
+				"update": false
 			},
 			{
 				"tableName": "trans_account",
-				"updateable": false
+				"update": false
 			},
 			{
 				"tableName": "trans_change_note",
-				"updateable": true
+				"update": true
 			},
 			{
 				"tableName": "trans_convert",
-				"updateable": false
+				"update": false
 			},
 			{
 				"tableName": "trans_fragment_change_log",
-				"updateable": false
+				"update": false
 			},
 			{
 				"tableName": "trans_fragment_convert_record",
-				"updateable": true
+				"update": true
 			}
 		]
-	}
+	},
 ]
