@@ -14,8 +14,9 @@ columns:
   id: id
   check: update_time
 
-oneCheckRows: 10000
-oneQueryRows: 50000
+syncJobCron: '*/5 * * * * ?'
+
+oneQueryRows: 16384
 
 logging:
   file: logs/application.log

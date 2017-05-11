@@ -8,9 +8,11 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.corefine.mysqlsync.config.ColumnsConfig;
 import org.corefine.mysqlsync.config.DbConfig;
@@ -36,8 +38,6 @@ public class SyncService {
 	private DescConfig descConfig;
 	@Autowired
 	private ColumnsConfig columnsConfig;
-	@Value("${oneCheckRows}")
-	private Integer oneCheckRows;
 	@Value("${oneQueryRows}")
 	private Integer oneQueryRows;
 
@@ -90,33 +90,158 @@ public class SyncService {
 	}
 
 	private void syncUpdate(SyncConnection syncConnection, String tableName) {
-		//TODO
-		System.err.println("不支持此操作");
+		int checkRows = oneQueryRows * 8;
+		String dataCheckSql = "select " + columnsConfig.getId() + " as 'ID', " + columnsConfig.getCheck() + " as 'CHECK' from "
+				+ tableName + " where " + columnsConfig.getId() + " > ? and " + columnsConfig.getId()
+				+ " <= ? order by " + columnsConfig.getId() + " asc";
+		String dataMd5Sql = "select `md5` from _sync_data where `key` = ?";
+		String insertMd5Sql = "insert into _sync_data(`md5`, `key`) values(?, ? )";
+		String updateMd5Sql = "update _sync_data set `md5` = ? where `key` = ?";
+		long startId = 0, endId = checkRows + startId;
+		while (true) {
+			//1.对比数据
+			List<Map<String, Object>> dataList = query(syncConnection.src, dataCheckSql, startId, endId);
+			if (dataList.isEmpty())
+				return;
+			String key = '$' + tableName + '-' + checkRows + '-' + startId;
+			String srcMd5 = md5(dataList);
+			String descMd5 = querySimple(syncConnection.desc, dataMd5Sql, key);
+			if (!srcMd5.equals(descMd5)) {
+				//2.执行更新数据，缩小更新范围
+				int step = 1024, index = 0;
+				for (long stepStartId = startId; stepStartId <= endId;) {
+					String stepKey = '#' + tableName + '-' + step + '-' + stepStartId;
+					//2.1.md5 src
+					String stepSrcMd5 = md5(dataList, index, step);
+					String stepDescMd5 = querySimple(syncConnection.desc, dataMd5Sql, stepKey);
+					if (!stepSrcMd5.equals(stepDescMd5)) {
+						int updateCount = 0;
+						//2.2.获取目标库的数据
+						List<Map<String, Object>> srcList = dataList.subList(index, index + step);
+						//TODO index+step为1024，有可能不到1024
+						List<Map<String, Object>> descList = query(syncConnection.src, dataCheckSql, stepStartId, stepStartId + step);
+						//2.3.转换目录库的数据结构
+						Map<Object, Object> descMap = new HashMap<>(descList.size());
+						for (Map<String, Object> data : descList)
+							descMap.put(data.get("ID"), data.get("CHECK"));
+						//2.4.对比数据
+						for (Map<String, Object> data : srcList) {
+							Object id = data.get("ID");
+							Object srcCheck = data.get("CHECK");
+							Object descCheck = descMap.remove(id);
+							if (srcCheck.equals(descCheck))
+								continue;
+							updateCount++;
+							//2.5.更新或新增数据
+							if (descCheck == null)
+								syncUpdateInsertOneRow(syncConnection, tableName, (Long) id);
+							else
+								syncUpdateUpdateOneRow(syncConnection, tableName, (Long) id);
+						}
+						//2.6.删除数据
+						updateCount += descMap.size();
+						if (descMap.size() > 0)
+							syncUpdateDeleteRows(syncConnection.desc, tableName, descMap);
+						//2.7.写入md5
+						if (stepDescMd5 == null)
+							execute(syncConnection.desc, insertMd5Sql, stepSrcMd5, stepKey);
+						else
+							execute(syncConnection.desc, updateMd5Sql, stepSrcMd5, stepKey);
+						logger.debug(tableName + "更新" + updateCount + "条记录，当前ID：" + stepStartId);
+					}
+					step = endId - stepStartId >= step ? step : (int) (endId - stepStartId);
+					stepStartId += step;
+					index += step;
+				}
+			}
+			//3.写入新的MD5
+			if (descMd5 == null)
+				execute(syncConnection.desc, insertMd5Sql, srcMd5, key);
+			else
+				execute(syncConnection.desc, updateMd5Sql, srcMd5, key);
+			startId = endId;
+			endId += checkRows;
+			if (dataList.size() < checkRows)
+				return;
+		}
+	}
+
+	private void syncUpdateDeleteRows(Connection connection, String tableName, Map<Object, Object> descMap) {
+		StringBuilder sb = new StringBuilder();
+		sb.append("delete from ");
+		sb.append(tableName);
+		sb.append(" where `");
+		sb.append(columnsConfig.getId());
+		sb.append("` in (");
+		Object[] ids = new Object[descMap.size()];
+		int index = 0;
+		for (Object id : descMap.keySet()) {
+			ids[index++] = id;
+			sb.append("?,");
+		}
+		sb.delete(sb.length() - 1, sb.length());
+		sb.append(")");
+		execute(connection, sb.toString(), ids);
+	}
+
+	private void syncUpdateInsertOneRow(SyncConnection syncConnection, String tableName, Long id) {
+		String dataSql = "select * from " + tableName + " where `" + columnsConfig.getId() + "` = ?";
+		Map<String, Object> data = queryOne(syncConnection.src, dataSql, id);
+		if (data == null)
+			return;
+		StringBuilder sb = new StringBuilder();
+		sb.append("insert into ").append(tableName).append("(");
+		int index = 0;
+		Object[] datas = new Object[data.size()];
+		StringBuilder valuesSb = new StringBuilder();
+		for (Entry<String, Object> entry : data.entrySet()) {
+			sb.append("`").append(entry.getKey()).append("`").append(",");
+			valuesSb.append("?,");
+			datas[index++] = entry.getValue();
+		}
+		sb.delete(sb.length() - 1, sb.length());
+		sb.append(") values (");
+		sb.append(valuesSb, 0, valuesSb.length() - 1);
+		sb.append(")");
+		execute(syncConnection.desc, sb.toString(), datas);
+	}
+
+	private void syncUpdateUpdateOneRow(SyncConnection syncConnection, String tableName, Long id) {
+		String dataSql = "select * from " + tableName + " where `" + columnsConfig.getId() + "` = ?";
+		Map<String, Object> data = queryOne(syncConnection.src, dataSql, id);
+		if (data == null)
+			return;
+		StringBuilder sb = new StringBuilder();
+		sb.append("update ").append(tableName).append(" set ");
+		Object[] datas = new Object[data.size()];
+		int index = 0;
+		for (Entry<String, Object> entry : data.entrySet()) {
+			sb.append("`").append(entry.getKey()).append("` = ").append(" ?,");
+			datas[index++] = entry.getValue();
+		}
+		sb.delete(sb.length() - 1, sb.length());
+		sb.append(" where `");
+		sb.append(columnsConfig.getId());
+		sb.append("` = ");
+		sb.append(id);
+		execute(syncConnection.desc, sb.toString(), datas);
 	}
 
 	private void syncInsert(SyncConnection syncConnection, String tableName) {
-		Object maxId = null;
+		Long maxId = querySimple(syncConnection.desc, "select " + columnsConfig.getId()
+		+ " from " + tableName + " order by " + columnsConfig.getId() + " desc limit 1");
+		if (maxId == null)
+			maxId = 0l;
 		while (true) {
-			//1.查询最大ID
-			if (maxId == null) {
-				maxId = querySimple(syncConnection.desc, "select " + columnsConfig.getId() + " from " + tableName + 
-						" order by " + columnsConfig.getId() + " desc limit 1");
-			}
-			//2.查询数据
+			//1.查询数据
 			String sql = "select * from " + tableName;
-			if (maxId != null)
-				sql += " where " + columnsConfig.getId() + " > ?";
+			sql += " where " + columnsConfig.getId() + " > ?";
 			sql += " order by " + columnsConfig.getId() + " asc limit " + oneQueryRows;
-			List<Map<String, Object>> dataList;
-			if (maxId == null)
-				dataList = query(syncConnection.src, sql);
-			else
-				dataList = query(syncConnection.src, sql, maxId);
-				
+			List<Map<String, Object>> dataList = query(syncConnection.src, sql, maxId);
 			if (dataList.isEmpty())
 				return;
 			Map<String, Object> firstMap = dataList.get(0);
-			//3.写入数据
+			//2.写入数据
 			StringBuilder sb = new StringBuilder();
 			sb.append("insert into ").append(tableName).append("(");
 			for (String key : firstMap.keySet()) {
@@ -137,8 +262,10 @@ public class SyncService {
 			}
 			sb.delete(sb.length() - 1, sb.length());
 			execute(syncConnection.desc, sb.toString(), datas);
-			maxId = dataList.get(dataList.size() - 1).get(columnsConfig.getId());
+			maxId = (Long) dataList.get(dataList.size() - 1).get(columnsConfig.getId());
 			logger.debug(tableName + "新增" + dataList.size() + "条记录，当前ID：" + maxId);
+			if (dataList.size() < oneQueryRows)
+				return;
 		}
 	}
 
@@ -213,8 +340,8 @@ public class SyncService {
 	private void initSyncTable(Connection conn) {
 		String checkTableScript = "SHOW TABLES LIKE '_sync_data'";
 		String createTableScript = "CREATE TABLE `_sync_data`(`key` varchar(255) NOT NULL, "
-				+ "`batch` varchar(255) DEFAULT NULL, `md5` varchar(255) NOT NULL, "
-				+ "PRIMARY KEY (`key`),  UNIQUE KEY `key` (`key`,`batch`)) "
+				+ "`md5` varchar(255) NOT NULL, "
+				+ "PRIMARY KEY (`key`)) "
 				+ "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
 		Statement st = null;
 		try {
@@ -260,6 +387,20 @@ public class SyncService {
 		sb.append(dbName);
 		sb.append("?useUnicode=true&characterEncoding=utf-8&useSSL=true");
 		return DriverManager.getConnection(sb.toString(), config.getUsername(), config.getPassword());
+	}
+
+	private String md5(List<Map<String, Object>> dataList) {
+		return md5(dataList, 0, dataList.size());
+	}
+
+	private String md5(List<Map<String, Object>> dataList, int start, int length) {
+		StringBuilder sb = new StringBuilder();
+		int end = start + length;
+		for (int i = start; i < end; i++) {
+			Map<String, Object> data = dataList.get(i);
+			sb.append(data.get(data.get("ID"))).append(';').append(data.get("CHECK")).append('.');
+		}
+		return MD5Util.getMD5(sb.toString());
 	}
 
 	private class SyncConnection {
