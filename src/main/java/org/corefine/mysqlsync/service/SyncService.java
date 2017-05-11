@@ -40,8 +40,6 @@ public class SyncService {
 	private Integer oneCheckRows;
 	@Value("${oneQueryRows}")
 	private Integer oneQueryRows;
-	@Value("${oneInsertRows}")
-	private Integer oneInsertRows;
 
 	public void sync() {
 		logger.info("开始数据同步...");
@@ -101,10 +99,8 @@ public class SyncService {
 		while (true) {
 			//1.查询最大ID
 			if (maxId == null) {
-				maxId = querySimple(syncConnection.desc, "select `batch` from _sync_data where `key` = ?", tableName);
-				if (maxId == null) {
-					execute(syncConnection.desc, "insert into _sync_data(`key`, `batch`, `md5`) values(?, '0', '')", tableName);
-				}
+				maxId = querySimple(syncConnection.desc, "select " + columnsConfig.getId() + " from " + tableName + 
+						" order by " + columnsConfig.getId() + " desc limit 1");
 			}
 			//2.查询数据
 			String sql = "select * from " + tableName;
@@ -142,9 +138,7 @@ public class SyncService {
 			sb.delete(sb.length() - 1, sb.length());
 			execute(syncConnection.desc, sb.toString(), datas);
 			maxId = dataList.get(dataList.size() - 1).get(columnsConfig.getId());
-			//4.更新maxId
-			execute(syncConnection.desc, "update _sync_data set batch  = ? where `key` = ?", maxId, tableName);
-			logger.debug(tableName + "新增" + dataList.size() + "条记录，当前主建：" + maxId);
+			logger.debug(tableName + "新增" + dataList.size() + "条记录，当前ID：" + maxId);
 		}
 	}
 

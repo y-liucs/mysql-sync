@@ -25,15 +25,15 @@
 			},
 			{
 				"tableName": "trans_account",
-				"update": false
-			},
-			{
-				"tableName": "trans_change_note",
 				"update": true
 			},
 			{
-				"tableName": "trans_convert",
+				"tableName": "trans_change_note",
 				"update": false
+			},
+			{
+				"tableName": "trans_convert",
+				"update": true
 			},
 			{
 				"tableName": "trans_fragment_change_log",

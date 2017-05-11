@@ -16,7 +16,6 @@ columns:
 
 oneCheckRows: 10000
 oneQueryRows: 50000
-oneInsertRows: 10000
 
 logging:
   file: logs/application.log
