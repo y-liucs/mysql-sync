@@ -25,7 +25,7 @@
 			},
 			{
 				"tableName": "trans_account",
-				"update": false
+				"update": true
 			},
 			{
 				"tableName": "trans_change_note",
@@ -33,7 +33,7 @@
 			},
 			{
 				"tableName": "trans_convert",
-				"update": false
+				"update": true
 			},
 			{
 				"tableName": "trans_fragment_change_log",
@@ -41,31 +41,7 @@
 			},
 			{
 				"tableName": "trans_fragment_convert_record",
-				"update": false
-			},
-			{
-				"tableName": "quoits_weight_config",
-				"update": false
-			},
-			{
-				"tableName": "quoits_awards_info",
-				"update": false
-			},
-			{
-				"tableName": "plat_wheel_weight_config",
-				"update": false
-			},
-			{
-				"tableName": "plat_profit_awards_info",
-				"update": false
-			},
-			{
-				"tableName": "inventory_activity_info",
-				"update": false
-			},
-			{
-				"tableName": "trans_fragment",
-				"update": false
+				"update": true
 			}
 		]
 	},

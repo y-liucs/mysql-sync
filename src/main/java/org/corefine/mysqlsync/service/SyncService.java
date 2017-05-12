@@ -82,11 +82,26 @@ public class SyncService {
 	}
 
 	private void syncTable(SyncConnection syncConnection, TableConfig table) {
-		//1.同步新增
+		//1.同步结构
+		syncCreate(syncConnection, table.getTableName());
+		//2.同步新增
 		syncInsert(syncConnection, table.getTableName());
-		//2.同步更新
+		//3.同步更新
 		if (table.isUpdate())
 			syncUpdate(syncConnection, table.getTableName());
+	}
+	
+	private void syncCreate(SyncConnection syncConnection, String tableName) {
+		String sql = "show create table " + tableName;
+		String srcData = queryOne(syncConnection.src, sql).get("Create Table").toString();
+		String srcMd5 = md5(srcData);
+		String descData = queryOne(syncConnection.desc, sql).get("Create Table").toString();
+		String descMd5 = md5(descData);
+		if (!descMd5.equals(srcMd5)) {
+			execute(syncConnection.desc, "drop table " + tableName);
+			execute(syncConnection.desc, srcData);
+			logger.info(tableName + "表结构错误，已经重建");
+		}
 	}
 
 	private void syncUpdate(SyncConnection syncConnection, String tableName) {
@@ -100,6 +115,7 @@ public class SyncService {
 		long startId = 0, endId = checkRows + startId;
 		while (true) {
 			//1.对比数据
+			logger.debug(tableName + "开始验证记录是否被修改，当前ID：" + endId);
 			List<Map<String, Object>> dataList = query(syncConnection.src, dataCheckSql, startId, endId);
 			if (dataList.isEmpty())
 				return;
@@ -110,17 +126,23 @@ public class SyncService {
 				//2.执行更新数据，缩小更新范围
 				int step = 1024, index = 0;
 				for (long stepStartId = startId; stepStartId <= endId;) {
+					long stepEndId = stepStartId + step;
 					String stepKey = '#' + tableName + '-' + step + '-' + stepStartId;
 					//2.1.md5 src
 					String stepSrcMd5 = md5(dataList, index, step);
 					String stepDescMd5 = querySimple(syncConnection.desc, dataMd5Sql, stepKey);
 					if (!stepSrcMd5.equals(stepDescMd5)) {
 						int updateCount = 0;
-						//2.2.获取目标库的数据
+						//2.2.获取源数据库数据
 						List<Map<String, Object>> srcList = dataList.subList(index, index + step);
-						//TODO index+step为1024，有可能不到1024
-						List<Map<String, Object>> descList = query(syncConnection.src, dataCheckSql, stepStartId, stepStartId + step);
+						for (int i = srcList.size() - 1; i >= 0; i--) {
+							if (((Long)srcList.get(i).get("ID")) > stepEndId)
+								srcList.remove(i);
+							else
+								break;
+						}
 						//2.3.转换目录库的数据结构
+						List<Map<String, Object>> descList = query(syncConnection.src, dataCheckSql, stepStartId, stepEndId);
 						Map<Object, Object> descMap = new HashMap<>(descList.size());
 						for (Map<String, Object> data : descList)
 							descMap.put(data.get("ID"), data.get("CHECK"));
@@ -400,7 +422,11 @@ public class SyncService {
 			Map<String, Object> data = dataList.get(i);
 			sb.append(data.get(data.get("ID"))).append(';').append(data.get("CHECK")).append('.');
 		}
-		return MD5Util.getMD5(sb.toString());
+		return md5(sb.toString());
+	}
+	
+	private String md5(String data) {
+		return MD5Util.getMD5(data);
 	}
 
 	private class SyncConnection {
