@@ -87,8 +87,11 @@ public class SyncService {
 		//2.同步新增
 		syncInsert(syncConnection, table.getTableName());
 		//3.同步更新
-		if (table.isUpdate())
+		if (table.isUpdate()) {
+			logger.debug(table.getTableName() + "开始验证是否有更新...");
 			syncUpdate(syncConnection, table.getTableName());
+			logger.debug(table.getTableName() + "开始验证是否有更新!");
+		}
 	}
 	
 	private void syncCreate(SyncConnection syncConnection, String tableName) {
@@ -114,8 +117,8 @@ public class SyncService {
 		String updateMd5Sql = "update _sync_data set `md5` = ? where `key` = ?";
 		long startId = 0, endId = checkRows + startId;
 		while (true) {
+			logger.debug(tableName + "验证记录是否被修改，当前ID：" + endId);
 			//1.对比数据
-			logger.debug(tableName + "开始验证记录是否被修改，当前ID：" + endId);
 			List<Map<String, Object>> dataList = query(syncConnection.src, dataCheckSql, startId, endId);
 			if (dataList.isEmpty())
 				return;
@@ -124,29 +127,31 @@ public class SyncService {
 			String descMd5 = querySimple(syncConnection.desc, dataMd5Sql, key);
 			if (!srcMd5.equals(descMd5)) {
 				//2.执行更新数据，缩小更新范围
-				int step = 1024, index = 0;
-				for (long stepStartId = startId; stepStartId <= endId;) {
+				int step = oneQueryRows / 8, index = 0;
+				for (long stepStartId = startId; stepStartId < endId;) {
 					long stepEndId = stepStartId + step;
+					int endIndex = index + step > dataList.size() ? dataList.size() : index + step;
+					List<Map<String, Object>> baseSrcList = dataList.subList(index, endIndex); 
+					List<Map<String, Object>> srcList = new ArrayList<>(baseSrcList.size());
+					srcList.addAll(baseSrcList);
+					for (int i = srcList.size() - 1; i >= 0; i--) {
+						if (((Long)srcList.get(i).get("ID")) > stepEndId)
+							srcList.remove(i);
+						else
+							break;
+					}
 					String stepKey = '#' + tableName + '-' + step + '-' + stepStartId;
 					//2.1.md5 src
-					String stepSrcMd5 = md5(dataList, index, step);
+					String stepSrcMd5 = md5(srcList);
 					String stepDescMd5 = querySimple(syncConnection.desc, dataMd5Sql, stepKey);
 					if (!stepSrcMd5.equals(stepDescMd5)) {
 						int updateCount = 0;
-						//2.2.获取源数据库数据
-						List<Map<String, Object>> srcList = dataList.subList(index, index + step);
-						for (int i = srcList.size() - 1; i >= 0; i--) {
-							if (((Long)srcList.get(i).get("ID")) > stepEndId)
-								srcList.remove(i);
-							else
-								break;
-						}
-						//2.3.转换目录库的数据结构
+						//2.2.转换目录库的数据结构
 						List<Map<String, Object>> descList = query(syncConnection.src, dataCheckSql, stepStartId, stepEndId);
 						Map<Object, Object> descMap = new HashMap<>(descList.size());
 						for (Map<String, Object> data : descList)
 							descMap.put(data.get("ID"), data.get("CHECK"));
-						//2.4.对比数据
+						//2.3.对比数据
 						for (Map<String, Object> data : srcList) {
 							Object id = data.get("ID");
 							Object srcCheck = data.get("CHECK");
@@ -154,17 +159,17 @@ public class SyncService {
 							if (srcCheck.equals(descCheck))
 								continue;
 							updateCount++;
-							//2.5.更新或新增数据
+							//2.4.更新或新增数据
 							if (descCheck == null)
 								syncUpdateInsertOneRow(syncConnection, tableName, (Long) id);
 							else
 								syncUpdateUpdateOneRow(syncConnection, tableName, (Long) id);
 						}
-						//2.6.删除数据
+						//2.5.删除数据
 						updateCount += descMap.size();
 						if (descMap.size() > 0)
 							syncUpdateDeleteRows(syncConnection.desc, tableName, descMap);
-						//2.7.写入md5
+						//2.6.写入md5
 						if (stepDescMd5 == null)
 							execute(syncConnection.desc, insertMd5Sql, stepSrcMd5, stepKey);
 						else
@@ -173,7 +178,7 @@ public class SyncService {
 					}
 					step = endId - stepStartId >= step ? step : (int) (endId - stepStartId);
 					stepStartId += step;
-					index += step;
+					index = endIndex;
 				}
 			}
 			//3.写入新的MD5
@@ -412,16 +417,9 @@ public class SyncService {
 	}
 
 	private String md5(List<Map<String, Object>> dataList) {
-		return md5(dataList, 0, dataList.size());
-	}
-
-	private String md5(List<Map<String, Object>> dataList, int start, int length) {
 		StringBuilder sb = new StringBuilder();
-		int end = start + length;
-		for (int i = start; i < end; i++) {
-			Map<String, Object> data = dataList.get(i);
+		for (Map<String, Object> data : dataList)
 			sb.append(data.get(data.get("ID"))).append(';').append(data.get("CHECK")).append('.');
-		}
 		return md5(sb.toString());
 	}
 	
