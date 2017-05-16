@@ -90,7 +90,7 @@ public class SyncService {
 		if (table.isUpdate()) {
 			logger.debug(table.getTableName() + "开始验证是否有更新...");
 			syncUpdate(syncConnection, table.getTableName());
-			logger.debug(table.getTableName() + "开始验证是否有更新!");
+			logger.debug(table.getTableName() + "完成验证是否有更新!");
 		}
 	}
 	
@@ -115,13 +115,15 @@ public class SyncService {
 		String dataMd5Sql = "select `md5` from _sync_data where `key` = ?";
 		String insertMd5Sql = "insert into _sync_data(`md5`, `key`) values(?, ? )";
 		String updateMd5Sql = "update _sync_data set `md5` = ? where `key` = ?";
+		String maxIdSql = "select id from " + tableName + " order by id desc limit 1";
+		Long maxId = querySimple(syncConnection.src, maxIdSql);
 		long startId = 0, endId = checkRows + startId;
 		while (true) {
 			logger.debug(tableName + "验证记录是否被修改，当前ID：" + endId);
 			//1.对比数据
 			List<Map<String, Object>> dataList = query(syncConnection.src, dataCheckSql, startId, endId);
 			if (dataList.isEmpty())
-				return;
+				continue;
 			String key = '$' + tableName + '-' + checkRows + '-' + startId;
 			String srcMd5 = md5(dataList);
 			String descMd5 = querySimple(syncConnection.desc, dataMd5Sql, key);
@@ -186,10 +188,11 @@ public class SyncService {
 				execute(syncConnection.desc, insertMd5Sql, srcMd5, key);
 			else
 				execute(syncConnection.desc, updateMd5Sql, srcMd5, key);
+			//4.结束前处理
+			if (endId >= maxId)
+				return;
 			startId = endId;
 			endId += checkRows;
-			if (dataList.size() < checkRows)
-				return;
 		}
 	}
 

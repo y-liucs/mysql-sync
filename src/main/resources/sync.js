@@ -4,7 +4,7 @@
 		"tables": [
 			{
 				"tableName": "uic_burying_point",
-				"update": true
+				"update": false
 			}
 		]
 	},
@@ -13,15 +13,15 @@
 		"tables": [
 			{
 				"tableName": "plat_ranking_history",
-				"update": true
+				"update": false
 			},
 			{
 				"tableName": "plat_wheel_user_play_record",
-				"update": true
+				"update": false
 			},
 			{
 				"tableName": "quoits_user_play_record",
-				"update": true
+				"update": false
 			},
 			{
 				"tableName": "trans_account",
@@ -29,43 +29,43 @@
 			},
 			{
 				"tableName": "trans_change_note",
-				"update": true
+				"update": false
 			},
 			{
 				"tableName": "trans_convert",
-				"update": true
+				"update": false
 			},
 			{
 				"tableName": "trans_fragment_change_log",
-				"update": true
+				"update": false
 			},
 			{
 				"tableName": "trans_fragment_convert_record",
-				"update": true
+				"update": false
 			},
 			{
 				"tableName": "quoits_weight_config",
-				"update": true
+				"update": false
 			},
 			{
 				"tableName": "quoits_awards_info",
-				"update": true
+				"update": false
 			},
 			{
 				"tableName": "plat_wheel_weight_config",
-				"update": true
+				"update": false
 			},
 			{
 				"tableName": "plat_profit_awards_info",
-				"update": true
+				"update": false
 			},
 			{
 				"tableName": "inventory_activity_info",
-				"update": true
+				"update": false
 			},
 			{
 				"tableName": "trans_fragment",
-				"update": true
+				"update": false
 			}
 		]
 	},

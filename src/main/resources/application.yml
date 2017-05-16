@@ -16,7 +16,7 @@ columns:
 
 syncJobCron: '0 */5 * * * ?'
 
-oneQueryRows: 16384
+oneQueryRows: 65536
 
 logging:
   file: logs/application.log
