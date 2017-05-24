@@ -43,6 +43,15 @@ public class SyncConfig implements InitializingBean {
 				tables.add(table);
 				table.setTableName(jTable.getString("tableName"));
 				table.setUpdate(jTable.getBoolean("update"));
+				List<String> ignores;
+				if (jTable.has("ignores")) {
+					JSONArray jIgnores = jTable.getJSONArray("ignores");
+					ignores = new ArrayList<>(jIgnores.length());
+					for (int k = 0; k < jIgnores.length(); k++)
+						ignores.add(jIgnores.getString(k));
+				} else
+					ignores = new ArrayList<>();
+				table.setIgnores(ignores);
 			}
 		}
 		logger.info("获取到同步配置：" + dbs);
@@ -72,6 +81,7 @@ public class SyncConfig implements InitializingBean {
 	public static class TableConfig {
 		private String tableName;
 		private boolean update;
+		private List<String> ignores;
 		public String getTableName() {
 			return tableName;
 		}
@@ -84,9 +94,15 @@ public class SyncConfig implements InitializingBean {
 		public void setUpdate(boolean update) {
 			this.update = update;
 		}
+		public List<String> getIgnores() {
+			return ignores;
+		}
+		public void setIgnores(List<String> ignores) {
+			this.ignores = ignores;
+		}
 		@Override
 		public String toString() {
-			return "TableConfig [tableName=" + tableName + ", update=" + update + "]";
+			return "TableConfig [tableName=" + tableName + ", update=" + update + ", ignores=" + ignores + "]";
 		}
 	}
 }
