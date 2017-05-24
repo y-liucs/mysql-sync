@@ -47,7 +47,11 @@ public class SyncService {
 			dbService.initSyncTable(syncConnection.desc);
 			for (TableConfig table : db.getTables()) {
 				logger.info("开始同步" + table.getTableName() + "表...");
-				syncTable(syncConnection, table);
+				try {
+					syncTable(syncConnection, table);
+				} catch (RuntimeException e) {
+					logger.error("同步表失败" + table.getTableName(), e);
+				}
 				logger.info("完成同步" + table.getTableName() + "表!");
 			}
 		} catch (Exception e) {
