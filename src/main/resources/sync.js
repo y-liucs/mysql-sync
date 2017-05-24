@@ -37,6 +37,18 @@
 				"update": true
 			},
 			{
+				"tableName": "plat_task",
+				"update": true
+			},
+			{
+				"tableName": "plat_task_awards",
+				"update": true
+			},
+			{
+				"tableName": "plat_task_user_log",
+				"update": true
+			},
+			{
 				"tableName": "trans_change_note",
 				"update": false
 			},
@@ -62,7 +74,7 @@
 			},
 			{
 				"tableName": "plat_wheel_weight_config",
-				"update": false
+				"update": true
 			},
 			{
 				"tableName": "plat_profit_awards_info",
