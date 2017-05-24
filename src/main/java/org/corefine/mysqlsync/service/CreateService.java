@@ -21,14 +21,18 @@ public class CreateService {
 		String srcData = dbService.queryOne(syncConnection.src, sql).get("Create Table").toString();
 		String srcMd5 = md5Service.md5(srcData);
 		String descData = "";
+		boolean isDelete;
 		try {
 			descData = dbService.queryOne(syncConnection.desc, sql).get("Create Table").toString();
+			isDelete = true;
 		} catch (RuntimeException e) {
+			isDelete = false;
 			//table is not exist
 		}
 		String descMd5 = md5Service.md5(descData);
 		if (!descMd5.equals(srcMd5)) {
-			dbService.execute(syncConnection.desc, "drop table " + tableName);
+			if (isDelete)
+				dbService.execute(syncConnection.desc, "drop table " + tableName);
 			dbService.execute(syncConnection.desc, srcData);
 			logger.info(tableName + "表结构错误，已经重建");
 		}
