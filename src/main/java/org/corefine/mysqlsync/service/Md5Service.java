@@ -1,5 +1,9 @@
 package org.corefine.mysqlsync.service;
 
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.stereotype.Service;
 
 /**
  * MD5的算法在RFC1321 中定义 在RFC 1321中，给出了Test suite用来检验你的实现是否正确： MD5 ("") =
@@ -12,42 +16,53 @@ package org.corefine.mysqlsync.service;
  * 
  *         传入参数：一个字节数组 传出参数：字节数组的 MD5 结果字符串
  */
-public class MD5Util {
-	
+@Service
+public class Md5Service {
+
+	public String md5(List<Map<String, Object>> dataList) {
+		StringBuilder sb = new StringBuilder();
+		for (Map<String, Object> data : dataList)
+			sb.append(data.get(data.get("ID"))).append(';').append(data.get("CHECK")).append('.');
+		return md5(sb.toString());
+	}
+
+	public String md5(String data) {
+		return getMD5(data);
+	}
+
 	/**
 	 * 返回大写的MD5
+	 * 
 	 * @param source
 	 * @return
 	 */
-	public static String getUpperMD5(String source) {
+	public String getUpperMD5(String source) {
 		return getMD5(source).toUpperCase();
 	}
 
-	public static String getMD5(String source) {
-		if(null!=source){
+	public String getMD5(String source) {
+		if (null != source) {
 			return getMD5(source.getBytes());
 		}
 		return null;
 	}
-	
+
 	/**
 	 * 
 	 * @param password
 	 * @return
 	 */
-	public static String getPassword(String password) {
+	public String getPassword(String password) {
 		password = getMD5(password);
 		return password.substring(2) + password.substring(0, 2);
 	}
-	
-	public static String getMD5(byte[] source) {
+
+	public String getMD5(byte[] source) {
 		String s = null;
 		char hexDigits[] = { // 用来将字节转换成 16 进制表示的字符
-		'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd',
-				'e', 'f' };
+				'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
 		try {
-			java.security.MessageDigest md = java.security.MessageDigest
-					.getInstance("MD5");
+			java.security.MessageDigest md = java.security.MessageDigest.getInstance("MD5");
 			md.update(source);
 			byte tmp[] = md.digest(); // MD5 的计算结果是一个 128 位的长整数，
 										// 用字节表示就是 16 个字节
