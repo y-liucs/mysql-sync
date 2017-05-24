@@ -135,17 +135,17 @@
 			{
 				"tableName": "plat_wheel_user_play_record",
 				"update": true,
-				"ignores": []
+				"ignores": ["remark", "receiver_name", "receiver_mobile", "receiver_address"]
 			},
 			{
 				"tableName": "plat_ranking_history",
 				"update": true,
-				"ignores": []
+				"ignores": ["remark", "receiver_name", "receiver_mobile", "receiver_address"]
 			},
 			{
 				"tableName": "quoits_user_play_record",
 				"update": true,
-				"ignores": []
+				"ignores": ["remark", "receiver_name", "receiver_mobile", "receiver_address"]
 			}
 		]
 	}
