@@ -78,7 +78,7 @@
 			},
 			{
 				"tableName": "inventory_channel_info",
-				"update": true
+				"update": false
 			},
 			{
 				"tableName": "inventory_phy_awards_info",
@@ -135,17 +135,17 @@
 			{
 				"tableName": "plat_wheel_user_play_record",
 				"update": true,
-				"ignores": ["remark", "receiver_name", "receiver_mobile", "receiver_address"]
+				"ignores": ["receive_remark", "receiver_name", "receiver_mobile", "receiver_address"]
 			},
 			{
 				"tableName": "plat_ranking_history",
 				"update": true,
-				"ignores": ["remark", "receiver_name", "receiver_mobile", "receiver_address"]
+				"ignores": ["receive_remark", "receiver_name", "receiver_mobile", "receiver_address"]
 			},
 			{
 				"tableName": "quoits_user_play_record",
 				"update": true,
-				"ignores": ["remark", "receiver_name", "receiver_mobile", "receiver_address"]
+				"ignores": ["receive_remark", "receiver_name", "receiver_mobile", "receiver_address"]
 			}
 		]
 	}

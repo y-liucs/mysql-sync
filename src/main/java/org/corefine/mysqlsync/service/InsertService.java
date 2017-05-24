@@ -41,17 +41,19 @@ public class InsertService {
 			//2.写入数据
 			StringBuilder sb = new StringBuilder();
 			sb.append("insert into ").append(tableName).append("(");
+			int size = 0;
 			keyFlag: for (String key : firstMap.keySet()) {
 				for (String ignore : table.getIgnores()) {
 					if (ignore.equals(key))
 						continue keyFlag;
 				}
 				sb.append("`").append(key).append("`").append(",");
+				size++;
 			}
 			sb.delete(sb.length() - 1, sb.length());
 			sb.append(") values ");
 			int index = 0;
-			Object[] datas = new Object[dataList.size() * firstMap.size()];
+			Object[] datas = new Object[dataList.size() * size];
 			for (Map<String, Object> data : dataList) {
 				sb.append("(");
 				keyFlag: for (Entry<String, Object> entry : data.entrySet()) {

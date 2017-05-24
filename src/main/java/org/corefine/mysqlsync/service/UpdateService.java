@@ -44,75 +44,75 @@ public class UpdateService {
 			logger.debug(tableName + "验证记录是否被修改，当前ID：" + endId);
 			//1.对比数据
 			List<Map<String, Object>> dataList = dbService.query(syncConnection.src, dataCheckSql, startId, endId);
-			if (dataList.isEmpty())
-				continue;
-			String key = '$' + tableName + '-' + checkRows + '-' + startId;
-			String srcMd5 = md5Service.md5(dataList);
-			String descMd5 = dbService.querySimple(syncConnection.desc, dataMd5Sql, key);
-			if (!srcMd5.equals(descMd5)) {
-				//2.执行更新数据，缩小更新范围
-				int step = oneQueryRows / 8, index = 0;
-				for (long stepStartId = startId; stepStartId < endId;) {
-					long stepEndId = stepStartId + step;
-					int endIndex = index + step > dataList.size() ? dataList.size() : index + step;
-					List<Map<String, Object>> baseSrcList = dataList.subList(index, endIndex); 
-					List<Map<String, Object>> srcList = new ArrayList<>(baseSrcList.size());
-					srcList.addAll(baseSrcList);
-					for (int i = srcList.size() - 1; i >= 0; i--) {
-						if (((Long)srcList.get(i).get("ID")) > stepEndId)
-							srcList.remove(i);
-						else
-							break;
-					}
-					String stepKey = '#' + tableName + '-' + step + '-' + stepStartId;
-					//2.1.md5 src
-					String stepSrcMd5 = md5Service.md5(srcList);
-					String stepDescMd5 = dbService.querySimple(syncConnection.desc, dataMd5Sql, stepKey);
-					if (!stepSrcMd5.equals(stepDescMd5)) {
-						int updateCount = 0;
-						//2.2.转换目录库的数据结构
-						List<Map<String, Object>> descList = dbService.query(syncConnection.src, dataCheckSql, stepStartId, stepEndId);
-						Map<Object, Object> descMap = new HashMap<>(descList.size());
-						for (Map<String, Object> data : descList)
-							descMap.put(data.get("ID"), data.get("CHECK"));
-						//2.3.对比数据
-						for (Map<String, Object> data : srcList) {
-							Object id = data.get("ID");
-							Object srcCheck = data.get("CHECK");
-							Object descCheck = descMap.remove(id);
-							if (srcCheck.equals(descCheck))
-								continue;
-							updateCount++;
-							//2.4.更新或新增数据
-							if (descCheck == null)
-								syncUpdateInsertOneRow(syncConnection, table, (Long) id);
+			if (!dataList.isEmpty()) {
+				String key = '$' + tableName + '-' + checkRows + '-' + startId;
+				String srcMd5 = md5Service.md5(dataList);
+				String descMd5 = dbService.querySimple(syncConnection.desc, dataMd5Sql, key);
+				if (!srcMd5.equals(descMd5)) {
+					//2.执行更新数据，缩小更新范围
+					int step = oneQueryRows / 8, index = 0;
+					for (long stepStartId = startId; stepStartId < endId;) {
+						long stepEndId = stepStartId + step;
+						int endIndex = index + step > dataList.size() ? dataList.size() : index + step;
+						List<Map<String, Object>> baseSrcList = dataList.subList(index, endIndex); 
+						List<Map<String, Object>> srcList = new ArrayList<>(baseSrcList.size());
+						srcList.addAll(baseSrcList);
+						for (int i = srcList.size() - 1; i >= 0; i--) {
+							if (((Long)srcList.get(i).get("ID")) > stepEndId)
+								srcList.remove(i);
 							else
-								syncUpdateUpdateOneRow(syncConnection, table, (Long) id);
+								break;
 						}
-						//2.5.删除数据
-						updateCount += descMap.size();
-						if (descMap.size() > 0)
-							syncUpdateDeleteRows(syncConnection.desc, tableName, descMap);
-						//2.6.写入md5
-						if (stepDescMd5 == null)
-							dbService.execute(syncConnection.desc, insertMd5Sql, stepSrcMd5, stepKey);
-						else
-							dbService.execute(syncConnection.desc, updateMd5Sql, stepSrcMd5, stepKey);
-						logger.debug(tableName + "更新" + updateCount + "条记录，当前ID：" + stepStartId);
+						String stepKey = '#' + tableName + '-' + step + '-' + stepStartId;
+						//2.1.md5 src
+						String stepSrcMd5 = md5Service.md5(srcList);
+						String stepDescMd5 = dbService.querySimple(syncConnection.desc, dataMd5Sql, stepKey);
+						if (!stepSrcMd5.equals(stepDescMd5)) {
+							int updateCount = 0;
+							//2.2.转换目录库的数据结构
+							List<Map<String, Object>> descList = dbService.query(syncConnection.src, dataCheckSql, stepStartId, stepEndId);
+							Map<Object, Object> descMap = new HashMap<>(descList.size());
+							for (Map<String, Object> data : descList)
+								descMap.put(data.get("ID"), data.get("CHECK"));
+							//2.3.对比数据
+							for (Map<String, Object> data : srcList) {
+								Object id = data.get("ID");
+								Object srcCheck = data.get("CHECK");
+								Object descCheck = descMap.remove(id);
+								if (srcCheck.equals(descCheck))
+									continue;
+								updateCount++;
+								//2.4.更新或新增数据
+								if (descCheck == null)
+									syncUpdateInsertOneRow(syncConnection, table, (Long) id);
+								else
+									syncUpdateUpdateOneRow(syncConnection, table, (Long) id);
+							}
+							//2.5.删除数据
+							updateCount += descMap.size();
+							if (descMap.size() > 0)
+								syncUpdateDeleteRows(syncConnection.desc, tableName, descMap);
+							//2.6.写入md5
+							if (stepDescMd5 == null)
+								dbService.execute(syncConnection.desc, insertMd5Sql, stepSrcMd5, stepKey);
+							else
+								dbService.execute(syncConnection.desc, updateMd5Sql, stepSrcMd5, stepKey);
+							logger.debug(tableName + "更新" + updateCount + "条记录，当前ID：" + stepStartId);
+						}
+						step = endId - stepStartId >= step ? step : (int) (endId - stepStartId);
+						stepStartId += step;
+						index = endIndex;
 					}
-					step = endId - stepStartId >= step ? step : (int) (endId - stepStartId);
-					stepStartId += step;
-					index = endIndex;
 				}
+				//3.写入新的MD5
+				if (descMd5 == null)
+					dbService.execute(syncConnection.desc, insertMd5Sql, srcMd5, key);
+				else
+					dbService.execute(syncConnection.desc, updateMd5Sql, srcMd5, key);
+				//4.结束前处理
+				if (endId >= maxId)
+					return;
 			}
-			//3.写入新的MD5
-			if (descMd5 == null)
-				dbService.execute(syncConnection.desc, insertMd5Sql, srcMd5, key);
-			else
-				dbService.execute(syncConnection.desc, updateMd5Sql, srcMd5, key);
-			//4.结束前处理
-			if (endId >= maxId)
-				return;
 			startId = endId;
 			endId += checkRows;
 		}
