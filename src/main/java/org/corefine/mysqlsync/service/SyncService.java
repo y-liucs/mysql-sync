@@ -93,12 +93,17 @@ public class SyncService {
 			logger.debug(table.getTableName() + "完成验证是否有更新!");
 		}
 	}
-	
+
 	private void syncCreate(SyncConnection syncConnection, String tableName) {
 		String sql = "show create table " + tableName;
 		String srcData = queryOne(syncConnection.src, sql).get("Create Table").toString();
 		String srcMd5 = md5(srcData);
-		String descData = queryOne(syncConnection.desc, sql).get("Create Table").toString();
+		String descData = "";
+		try {
+			queryOne(syncConnection.desc, sql).get("Create Table").toString();
+		} catch (RuntimeException e) {
+			//table is not exist
+		}
 		String descMd5 = md5(descData);
 		if (!descMd5.equals(srcMd5)) {
 			execute(syncConnection.desc, "drop table " + tableName);
@@ -425,7 +430,7 @@ public class SyncService {
 			sb.append(data.get(data.get("ID"))).append(';').append(data.get("CHECK")).append('.');
 		return md5(sb.toString());
 	}
-	
+
 	private String md5(String data) {
 		return MD5Util.getMD5(data);
 	}
