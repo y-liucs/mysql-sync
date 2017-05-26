@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class SyncConfig {
-	@Value("syncConfigPath")
+	@Value("${syncConfigPath}")
 	private String syncConfigPath;
 
 	public List<DatabaseConfig> getDbs() {

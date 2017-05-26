@@ -90,7 +90,7 @@
 			},
 			{
 				"tableName": "inventory_channel_info",
-				"update": false
+				"update": true
 			},
 			{
 				"tableName": "inventory_phy_awards_info",

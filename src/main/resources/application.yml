@@ -18,7 +18,7 @@ syncJobCron: '*/10 * * * * ?'
 
 oneQueryRows: 65536
 
-syncConfigPath: /home/sync.js
+syncConfigPath: e:/home/sync.js
 
 logging:
   file: logs/application.log

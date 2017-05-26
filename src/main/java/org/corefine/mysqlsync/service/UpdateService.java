@@ -30,7 +30,7 @@ public class UpdateService {
 
 	public void sync(SyncConnection syncConnection, TableConfig table) {
 		String tableName = table.getTableName();
-		int checkRows = oneQueryRows * 8;
+		int checkRows = oneQueryRows * 16;
 		String dataCheckSql = "select " + columnsConfig.getId() + " as 'ID', " + columnsConfig.getCheck() + " as 'CHECK' from "
 				+ tableName + " where " + columnsConfig.getId() + " > ? and " + columnsConfig.getId()
 				+ " <= ? order by " + columnsConfig.getId() + " asc";
