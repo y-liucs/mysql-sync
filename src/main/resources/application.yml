@@ -14,9 +14,11 @@ columns:
   id: id
   check: update_time
 
-syncJobCron: '0 */10 * * * ?'
+syncJobCron: '*/10 * * * * ?'
 
 oneQueryRows: 65536
+
+syncConfigPath: /home/sync.js
 
 logging:
   file: logs/application.log

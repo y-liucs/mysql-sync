@@ -1,34 +1,30 @@
 package org.corefine.mysqlsync.config;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.InitializingBean;
-import org.springframework.core.io.DefaultResourceLoader;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.ResourceLoader;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Component
-public class SyncConfig implements InitializingBean {
-	private final Logger logger = LoggerFactory.getLogger(getClass());
-	private List<DatabaseConfig> dbs;
+public class SyncConfig {
+	@Value("syncConfigPath")
+	private String syncConfigPath;
 
 	public List<DatabaseConfig> getDbs() {
-		return dbs;
-	}
-
-	@Override
-	public void afterPropertiesSet() throws Exception {
-		ResourceLoader resourceLoader = new DefaultResourceLoader();
-		Resource resource = resourceLoader.getResource("sync.js");
-		JSONArray jArray = new JSONArray(new JSONTokener(resource.getInputStream()));
-		dbs = new ArrayList<>(jArray.length());
+		JSONArray jArray;
+		try {
+			jArray = new JSONArray(new JSONTokener(new FileInputStream(syncConfigPath)));
+		} catch (JSONException | FileNotFoundException e) {
+			throw new RuntimeException("读取配置异常", e);
+		}
+		List<DatabaseConfig> dbs = new ArrayList<>(jArray.length());
 		for (int i = 0; i < jArray.length(); i++) {
 			JSONObject jDb = jArray.getJSONObject(i);
 			DatabaseConfig db = new DatabaseConfig();
@@ -54,7 +50,7 @@ public class SyncConfig implements InitializingBean {
 				table.setIgnores(ignores);
 			}
 		}
-		logger.info("获取到同步配置：" + dbs);
+		return dbs;
 	}
 	
 	public static class DatabaseConfig {
