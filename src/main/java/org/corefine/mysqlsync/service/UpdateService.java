@@ -50,7 +50,7 @@ public class UpdateService {
 				String descMd5 = dbService.querySimple(syncConnection.desc, dataMd5Sql, key);
 				if (!srcMd5.equals(descMd5)) {
 					//2.执行更新数据，缩小更新范围
-					int step = oneQueryRows / 8, index = 0;
+					int step = 1024, index = 0;
 					for (long stepStartId = startId; stepStartId < endId;) {
 						long stepEndId = stepStartId + step;
 						int endIndex = index + step > dataList.size() ? dataList.size() : index + step;
@@ -70,7 +70,7 @@ public class UpdateService {
 						if (!stepSrcMd5.equals(stepDescMd5)) {
 							int updateCount = 0;
 							//2.2.转换目录库的数据结构
-							List<Map<String, Object>> descList = dbService.query(syncConnection.src, dataCheckSql, stepStartId, stepEndId);
+							List<Map<String, Object>> descList = dbService.query(syncConnection.desc, dataCheckSql, stepStartId, stepEndId);
 							Map<Object, Object> descMap = new HashMap<>(descList.size());
 							for (Map<String, Object> data : descList)
 								descMap.put(data.get("ID"), data.get("CHECK"));
