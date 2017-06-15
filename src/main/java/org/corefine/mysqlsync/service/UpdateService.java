@@ -189,6 +189,6 @@ public class UpdateService {
 		sb.append(columnsConfig.getId());
 		sb.append("` = ");
 		sb.append(id);
-		dbService.execute(syncConnection.desc, sb.toString(), datas);
+		dbService.execute(syncConnection.desc, sb.toString(), index, datas);
 	}
 }

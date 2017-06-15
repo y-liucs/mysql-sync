@@ -78,12 +78,11 @@ public class DBService {
 				}
 		}
 	}
-
-	public boolean execute(Connection connection, String sql, Object... params) {
+	public boolean execute(Connection connection, String sql, int length, Object... params) {
 		PreparedStatement pt = null;
 		try {
 			pt = connection.prepareStatement(sql);
-			for (int i = 0; i < params.length; i++)
+			for (int i = 0; i < length; i++)
 				pt.setObject(i + 1, params[i]);
 			return pt.execute();
 		} catch (SQLException e) {
@@ -94,6 +93,10 @@ public class DBService {
 			} catch (SQLException e) {
 			}
 		}
+	}
+
+	public boolean execute(Connection connection, String sql, Object... params) {
+		return execute(connection, sql, params.length, params);
 	}
 
 	public void initSyncTable(Connection conn) {
