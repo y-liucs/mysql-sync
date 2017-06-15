@@ -40,11 +40,15 @@ public class UpdateService {
 		String maxIdSql = "select id from " + tableName + " order by id desc limit 1";
 		Long maxId = dbService.querySimple(syncConnection.src, maxIdSql);
 		long startId = 0, endId = checkRows + startId;
+		int emptyCount = 0;
 		while (true) {
 			logger.debug(tableName + "验证记录是否被修改，当前ID：" + endId);
 			//1.对比数据
 			List<Map<String, Object>> dataList = dbService.query(syncConnection.src, dataCheckSql, startId, endId);
-			if (!dataList.isEmpty()) {
+			if (dataList.isEmpty() && emptyCount++ > 10) 
+				break;
+			else {
+				emptyCount = 0;
 				String key = '$' + tableName + '-' + checkRows + '-' + startId;
 				String srcMd5 = md5Service.md5(dataList);
 				String descMd5 = dbService.querySimple(syncConnection.desc, dataMd5Sql, key);
