@@ -17,88 +17,71 @@ public class SyncConfig {
 	@Value("${syncConfigPath}")
 	private String syncConfigPath;
 
-	public List<DatabaseConfig> getDbs() {
+	
+	public List<DatabaseSyncConfig> getDbs() {
 		JSONArray jArray;
 		try {
 			jArray = new JSONArray(new JSONTokener(new FileInputStream(syncConfigPath)));
 		} catch (JSONException | FileNotFoundException e) {
 			throw new RuntimeException("读取配置异常", e);
 		}
-		List<DatabaseConfig> dbs = new ArrayList<>(jArray.length());
-		for (int i = 0; i < jArray.length(); i++) {
+		int size = jArray.length();
+		List<DatabaseSyncConfig> dbs = new ArrayList<>(size);
+		
+		for (int i = 0; i < size; i++) {
 			JSONObject jDb = jArray.getJSONObject(i);
-			DatabaseConfig db = new DatabaseConfig();
-			dbs.add(db);
-			db.setDbName(jDb.getString("dbName"));
-			JSONArray jTables = jDb.getJSONArray("tables");
-			List<TableConfig> tables = new ArrayList<>(jTables.length());
-			db.setTables(tables);
-			for (int j = 0; j < jTables.length(); j++) {
-				JSONObject jTable = jTables.getJSONObject(j);
-				TableConfig table = new TableConfig();
-				tables.add(table);
-				table.setTableName(jTable.getString("tableName"));
-				table.setUpdate(jTable.getBoolean("update"));
-				List<String> ignores;
-				if (jTable.has("ignores")) {
-					JSONArray jIgnores = jTable.getJSONArray("ignores");
-					ignores = new ArrayList<>(jIgnores.length());
-					for (int k = 0; k < jIgnores.length(); k++)
-						ignores.add(jIgnores.getString(k));
-				} else
-					ignores = new ArrayList<>();
-				table.setIgnores(ignores);
-			}
+			dbs.add(new DatabaseSyncConfig(jDb));
 		}
 		return dbs;
 	}
 	
-	public static class DatabaseConfig {
-		private String dbName;
-		private List<TableConfig> tables;
-		public String getDbName() {
-			return dbName;
+	
+	public static class DatabaseSyncConfig{
+		private String srcDBName;
+		private String srcTableName;
+		private String descDBName;
+		private String descTableName;
+		private boolean update;
+		
+		public DatabaseSyncConfig(){
+			
 		}
-		public void setDbName(String dbName) {
-			this.dbName = dbName;
-		}
-		public List<TableConfig> getTables() {
-			return tables;
-		}
-		public void setTables(List<TableConfig> tables) {
-			this.tables = tables;
+		
+		public DatabaseSyncConfig(JSONObject json){
+			String src = json.getString("src");
+			String[] srcs = src.split("\\.");
+			this.srcDBName = srcs[0];
+			this.srcTableName = srcs[1];
+			String desc = json.getString("desc");
+			String[] descs = desc.split("\\.");
+			this.descDBName = descs[0];
+			this.descTableName = descs[1];
+			this.update = json.getBoolean("update");
 		}
 		@Override
 		public String toString() {
-			return "DatabaseConfig [dbName=" + dbName + ", tables=" + tables + "]";
+			return "DatabaseConfig [srcDBTableName=" + srcDBName+"." + srcTableName 
+					+" TO descDBTableName=" + descDBName+"." + descTableName +"]";
 		}
-	}
-	
-	public static class TableConfig {
-		private String tableName;
-		private boolean update;
-		private List<String> ignores;
-		public String getTableName() {
-			return tableName;
+
+		public String getSrcDBName() {
+			return srcDBName;
 		}
-		public void setTableName(String tableName) {
-			this.tableName = tableName;
+
+		public String getSrcTableName() {
+			return srcTableName;
 		}
+
+		public String getDescDBName() {
+			return descDBName;
+		}
+
+		public String getDescTableName() {
+			return descTableName;
+		}
+
 		public boolean isUpdate() {
 			return update;
-		}
-		public void setUpdate(boolean update) {
-			this.update = update;
-		}
-		public List<String> getIgnores() {
-			return ignores;
-		}
-		public void setIgnores(List<String> ignores) {
-			this.ignores = ignores;
-		}
-		@Override
-		public String toString() {
-			return "TableConfig [tableName=" + tableName + ", update=" + update + ", ignores=" + ignores + "]";
 		}
 	}
 }

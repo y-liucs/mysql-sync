@@ -15,7 +15,7 @@ import java.util.Map;
 import org.corefine.mysqlsync.config.DbConfig;
 import org.corefine.mysqlsync.config.DescConfig;
 import org.corefine.mysqlsync.config.SrcConfig;
-import org.corefine.mysqlsync.config.SyncConfig.DatabaseConfig;
+import org.corefine.mysqlsync.config.SyncConfig.DatabaseSyncConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -120,15 +120,15 @@ public class DBService {
 		}
 	}
 
-	public SyncConnection createConnection(DatabaseConfig db) {
+	public SyncConnection createConnection(DatabaseSyncConfig db) {
 		SyncConnection sync = new SyncConnection();
 		try {
-			sync.src = createConnection(srcConfig, db.getDbName());
+			sync.src = createConnection(srcConfig, db.getSrcDBName());
 		} catch (SQLException e) {
 			throw new RuntimeException("无法连接到源数据库:" + db + "," + srcConfig, e);
 		}
 		try {
-			sync.desc = createConnection(descConfig, db.getDbName());
+			sync.desc = createConnection(descConfig, db.getDescDBName());
 		} catch (SQLException e) {
 			try {
 				sync.src.close();
