@@ -5,7 +5,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.corefine.mysqlsync.config.ColumnsConfig;
-import org.corefine.mysqlsync.config.SyncConfig.DatabaseSyncConfig;
+import org.corefine.mysqlsync.config.SyncConfig.TableConfig;
 import org.corefine.mysqlsync.service.DBService.SyncConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,15 +23,15 @@ public class InsertService {
 	@Value("${oneQueryRows}")
 	private Integer oneQueryRows;
 	
-	public void sync(SyncConnection syncConnection, DatabaseSyncConfig db) {
+	public void sync(SyncConnection syncConnection, TableConfig table) {
+		String tableName = table.getTableName();
 		Long maxId = dbService.querySimple(syncConnection.desc, "select " + columnsConfig.getId()
-		+ " from " + db.getDescTableName() + " order by " + columnsConfig.getId() + " desc limit 1");
+		+ " from " + tableName + " order by " + columnsConfig.getId() + " desc limit 1");
 		if (maxId == null)
 			maxId = 0l;
 		while (true) {
 			//1.查询数据
-			String srcTableName = db.getSrcTableName();
-			String sql = "select * from " + srcTableName;
+			String sql = "select * from " + tableName;
 			sql += " where " + columnsConfig.getId() + " > ?";
 			sql += " order by " + columnsConfig.getId() + " asc limit " + oneQueryRows;
 			List<Map<String, Object>> dataList = dbService.query(syncConnection.src, sql, maxId);
@@ -40,9 +40,13 @@ public class InsertService {
 			Map<String, Object> firstMap = dataList.get(0);
 			//2.写入数据
 			StringBuilder sb = new StringBuilder();
-			sb.append("insert into ").append(db.getDescTableName()).append("(");
+			sb.append("insert into ").append(tableName).append("(");
 			int size = 0;
-			for (String key : firstMap.keySet()) {
+			keyFlag: for (String key : firstMap.keySet()) {
+				for (String ignore : table.getIgnores()) {
+					if (ignore.equals(key))
+						continue keyFlag;
+				}
 				sb.append("`").append(key).append("`").append(",");
 				size++;
 			}
@@ -52,7 +56,11 @@ public class InsertService {
 			Object[] datas = new Object[dataList.size() * size];
 			for (Map<String, Object> data : dataList) {
 				sb.append("(");
-				for (Entry<String, Object> entry : data.entrySet()) {
+				keyFlag: for (Entry<String, Object> entry : data.entrySet()) {
+					for (String ignore : table.getIgnores()) {
+						if (ignore.equals(entry.getKey()))
+							continue keyFlag;
+					}
 					sb.append("?,");
 					datas[index++] = entry.getValue();
 				}
@@ -62,7 +70,7 @@ public class InsertService {
 			sb.delete(sb.length() - 1, sb.length());
 			dbService.execute(syncConnection.desc, sb.toString(), datas);
 			maxId = (Long) dataList.get(dataList.size() - 1).get(columnsConfig.getId());
-			logger.debug(db.getDescDBName()+"."+db.getDescTableName() + "新增" + dataList.size() + "条记录，当前ID：" + maxId);
+			logger.debug(tableName + "新增" + dataList.size() + "条记录，当前ID：" + maxId);
 			if (dataList.size() < oneQueryRows)
 				return;
 		}

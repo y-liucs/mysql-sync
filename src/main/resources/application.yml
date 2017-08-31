@@ -1,25 +1,24 @@
 src: 
-  host: 192.168.10.53
-  username: dev
-  password: dev@2016
-  port: 8066
-
-desc: 
-  host: 192.168.10.55
-  username: dev
-  password: dev@2016
+  host: 120.132.82.55
+  username: rsync
+  password: rsync
   port: 3307
 
+desc: 
+  host: 192.168.101.239
+  username: dev
+  password: dev@2016
+  port: 3306
 
 columns:
   id: id
   check: update_time
 
-syncJobCron: '0 * * * * ?'
+syncJobCron: '*/10 * * * * ?'
 
 oneQueryRows: 1024
 
-syncConfigPath:  /opt/newToMycatsync/newToMycatsync.js
+syncConfigPath: E:\\workspace3\\mysql-sync2\\src\\main\\resources\\sync.js
 
 logging:
   file: logs/application.log
