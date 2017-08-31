@@ -43,7 +43,7 @@ public class UpdateService {
 			logger.debug(tableName + "验证记录是否被修改，当前ID：" + endId);
 			//1.对比数据
 			List<Map<String, Object>> dataList = dbService.query(syncConnection.src, dataCheckSql, startId, endId);
-			if (dataList.isEmpty() && emptyCount++ > 10) 
+			if (dataList.isEmpty() && emptyCount++ > 5) 
 				break;
 			else {
 				emptyCount = 0;
