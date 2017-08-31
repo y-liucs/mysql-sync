@@ -52,7 +52,7 @@ public class UpdateService {
 				String descMd5 = dbService.querySimple(syncConnection.desc, dataMd5Sql, key);
 				if (!srcMd5.equals(descMd5)) {
 					//2.执行更新数据，缩小更新范围
-					int updateCount = 0;
+					int insertCount = 0, updateCount = 0;
 					//2.2.转换目录库的数据结构
 					List<Map<String, Object>> descList = dbService.query(syncConnection.desc, dataCheckSql, startId, endId);
 					Map<Object, Object> descMap = new HashMap<>(descList.size());
@@ -65,18 +65,20 @@ public class UpdateService {
 						Object descCheck = descMap.remove(id);
 						if (srcCheck.equals(descCheck))
 							continue;
-						updateCount++;
 						//2.4.更新或新增数据
-						if (descCheck == null)
+						if (descCheck == null) {
+							insertCount++;
 							syncUpdateInsertOneRow(syncConnection, table, (Long) id);
-						else
+						} else {
+							updateCount++;
 							syncUpdateUpdateOneRow(syncConnection, table, (Long) id);
+						}
 					}
 					//2.5.删除数据
 					updateCount += descMap.size();
 					if (descMap.size() > 0)
 						syncUpdateDeleteRows(syncConnection.desc, tableName, descMap);
-					logger.debug(tableName + "更新" + updateCount + "条记录，当前ID：" + startId);
+					logger.debug(tableName + "更新" + updateCount + "条记录，新增" + insertCount + "条记录，删除" + descMap.size() + "条记录，当前ID：" + startId);
 				}
 				//3.写入新的MD5
 				if (descMd5 == null)
