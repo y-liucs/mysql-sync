@@ -1,25 +1,25 @@
 src: 
-  host: 192.168.10.53
+  host: 192.168.101.180
   username: dev
   password: dev@2016
   port: 8066
 
 desc: 
-  host: 192.168.10.55
+  host: 192.168.101.161
   username: dev
   password: dev@2016
-  port: 3307
+  port: 3306
 
 
 columns:
   id: id
   check: update_time
 
-syncJobCron: '0 * * * * ?'
+syncJobCron: '* * * * * ?'
 
 oneQueryRows: 1024
 
-syncConfigPath:  /opt/newToMycatsync/newToMycatsync.js
+syncConfigPath:  E://IdeaProjects//mysql-sync//src//main//resources//newToMycatsync.js
 
 logging:
   file: logs/application.log

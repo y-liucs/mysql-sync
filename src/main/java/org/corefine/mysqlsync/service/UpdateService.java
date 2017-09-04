@@ -1,12 +1,5 @@
 package org.corefine.mysqlsync.service;
 
-import java.sql.Connection;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-
 import org.corefine.mysqlsync.config.ColumnsConfig;
 import org.corefine.mysqlsync.config.SyncConfig.DatabaseSyncConfig;
 import org.corefine.mysqlsync.service.DBService.SyncConnection;
@@ -15,6 +8,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+
+import java.sql.Connection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
 @Service
 public class UpdateService {
@@ -30,8 +29,12 @@ public class UpdateService {
 
     public void sync(SyncConnection syncConnection, DatabaseSyncConfig db) {
         String srcTableName = db.getSrcTableName();
-        String dataCheckSql = "select " + columnsConfig.getId() + " as 'ID', " + columnsConfig.getCheck() + " as 'CHECK' from "
+        String descTableName = db.getDescTableName();
+        String srcDataCheckSql = "select " + columnsConfig.getId() + " as 'ID', " + columnsConfig.getCheck() + " as 'CHECK' from "
                 + srcTableName + " where " + columnsConfig.getId() + " > ? and " + columnsConfig.getId()
+                + " <= ? order by " + columnsConfig.getId() + " asc limit " + oneQueryRows;
+        String descDataCheckSql = "select " + columnsConfig.getId() + " as 'ID', " + columnsConfig.getCheck() + " as 'CHECK' from "
+                + descTableName + " where " + columnsConfig.getId() + " > ? and " + columnsConfig.getId()
                 + " <= ? order by " + columnsConfig.getId() + " asc limit " + oneQueryRows;
         String dataMd5Sql = "select `md5` from _sync_data where `key` = ?";
         String insertMd5Sql = "insert into _sync_data(`md5`, `key`) values(?, ? )";
@@ -45,19 +48,18 @@ public class UpdateService {
         while (true) {
             logger.debug(srcTableName + "验证记录是否被修改，当前ID：" + endId);
             //1.对比数据
-            List<Map<String, Object>> dataList = dbService.query(syncConnection.src, dataCheckSql, startId, endId);
+            List<Map<String, Object>> dataList = dbService.query(syncConnection.src, srcDataCheckSql, startId, endId);
             if (dataList.isEmpty() && emptyCount++ > 4)
                 break;
             else {
                 emptyCount = 0;
-                String descTableName = db.getDescTableName();
                 String key = '$' + descTableName + '-' + oneQueryRows + '-' + startId;
                 String srcMd5 = md5Service.md5(dataList);
                 String descMd5 = dbService.querySimple(syncConnection.desc, dataMd5Sql, key);
                 if (!srcMd5.equals(descMd5)) {
                     int updateCount = 0;
                     //2.2.转换目录库的数据结构
-                    List<Map<String, Object>> descList = dbService.query(syncConnection.desc, dataCheckSql, startId, endId);
+                    List<Map<String, Object>> descList = dbService.query(syncConnection.desc, descDataCheckSql, startId, endId);
                     Map<Object, Object> descMap = new HashMap<>(descList.size());
                     for (Map<String, Object> data : descList)
                         descMap.put(data.get("ID"), data.get("CHECK"));

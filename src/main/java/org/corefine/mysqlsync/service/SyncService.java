@@ -1,8 +1,5 @@
 package org.corefine.mysqlsync.service;
 
-import java.sql.SQLException;
-import java.util.List;
-
 import org.corefine.mysqlsync.config.SyncConfig;
 import org.corefine.mysqlsync.config.SyncConfig.DatabaseSyncConfig;
 import org.corefine.mysqlsync.service.DBService.SyncConnection;
@@ -10,6 +7,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.sql.SQLException;
+import java.util.List;
 
 @Service
 public class SyncService {
@@ -60,7 +60,7 @@ public class SyncService {
 	}
 
 	private void syncTable(SyncConnection syncConnection, DatabaseSyncConfig db) {
-//		createService.sync(syncConnection, db);
+		createService.sync(syncConnection, db);
 		insertService.sync(syncConnection, db);
 		if (db.isUpdate()) {
 			logger.debug(db.getSrcTableName() + "开始验证是否有更新...");
