@@ -14,7 +14,7 @@ columns:
   id: id
   check: update_time
 
-syncJobCron: '0 */5 * * * ?'
+syncJobCron: '0 * * * * ?'
 
 oneQueryRows: 1024
 

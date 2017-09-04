@@ -1,7 +1,7 @@
 [	{"dbName" : "uic", "tables" : [
+		{"tableName" : "uic_user", "update" : true, "ignores" : [ "loginname", "password", "phone", "head_img", "third_head_img" ]}, 
 		{"tableName" : "uic_burying_point",	"update" : false},
 		{"tableName" : "uic_user_device", "update" : true},
-		{"tableName" : "uic_user", "update" : true, "ignores" : [ "loginname", "password", "phone", "head_img", "third_head_img" ]}, 
 		{"tableName" : "uic_user_log", "update" : false}, 
 		{"tableName" : "uic_group_privilege", "update" : true}, 
 		{"tableName" : "uic_group_type","update" : true}, 
