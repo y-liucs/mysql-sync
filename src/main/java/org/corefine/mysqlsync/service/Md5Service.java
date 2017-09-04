@@ -41,10 +41,9 @@ public class Md5Service {
 	}
 
 	public String getMD5(String source) {
-		if (null != source) {
-			return getMD5(source.getBytes());
-		}
-		return null;
+		if (source == null)
+			return null;
+		return getMD5(source.getBytes());
 	}
 
 	/**
