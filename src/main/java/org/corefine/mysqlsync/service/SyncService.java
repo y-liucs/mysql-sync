@@ -58,10 +58,12 @@ public class SyncService {
 			logger.error("数据同步异常:" + db.getDbName(), e);
 		} finally {
 			try {
-				syncConnection.src.close();
+				if (syncConnection.src != null)
+					syncConnection.src.close();
 			} catch (SQLException e) {}
 			try {
-				syncConnection.desc.close();
+				if (syncConnection.desc != null)
+					syncConnection.desc.close();
 			} catch (SQLException e) {}
 		}
 	}

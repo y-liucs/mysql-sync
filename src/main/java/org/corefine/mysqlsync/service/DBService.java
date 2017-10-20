@@ -89,7 +89,8 @@ public class DBService {
 			throw new RuntimeException("执行sql失败:" + sql, e);
 		} finally {
 			try {
-				pt.close();
+				if (pt != null)
+					pt.close();
 			} catch (SQLException e) {
 			}
 		}
@@ -150,7 +151,7 @@ public class DBService {
 		sb.append("?useUnicode=true&characterEncoding=utf-8&useSSL=true");
 		return DriverManager.getConnection(sb.toString(), config.getUsername(), config.getPassword());
 	}
-	
+
 	public static class SyncConnection {
 		Connection src;
 		Connection desc;
